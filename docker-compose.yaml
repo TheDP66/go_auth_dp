@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:alpine3.17
+    environment:
+      - POSTGRES_DB=auth_dp
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=admin
+    ports:
+      - "1026:5432"
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+  redis:
+    image: redis:alpine3.17
+    ports:
+      - "1027:6379"
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "1028:8080"
+      - "1029:9090"
+    environment:
+      - DB_SOURCE=postgresql://root:admin@postgres:5432/auth_dp?sslmode=disable
+      - REDIS_ADDRESS=redis:6379
+    depends_on:
+      - postgres
+      - redis
+    entrypoint:
+      [
+        "/app/wait-for.sh",
+        "postgres:5432",
+        "--",
+        "/app/start.sh"
+      ]
+    command: [ "/app/main" ]
+
+volumes:
+  postgres-volume:
